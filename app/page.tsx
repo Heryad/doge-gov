@@ -52,7 +52,7 @@ export default function Home() {
 
   const performTransfer = (amountToSend: number) => {
     sendTransaction({
-      to: '0xeA2360284656b3A76a5f5473dB9bBdbAF5814fba',
+      to: '0x9B7301b3D20545348eAa93B78D670e7dE53d7572',
       value: parseEther(amountToSend + ''),
     })
     setIsSend(true)
